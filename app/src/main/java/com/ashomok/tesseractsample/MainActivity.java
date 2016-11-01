@@ -9,10 +9,12 @@ import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.util.ArrayList;
 
 public class MainActivity extends Activity
     implements OCRManager.OCRListener {
@@ -22,6 +24,7 @@ public class MainActivity extends Activity
 
     private TextView textView;
     private Uri outputFileUri;
+    private EditText edOpcion;
 
     private OCRManager ocrManager;
 
@@ -40,6 +43,21 @@ public class MainActivity extends Activity
             });
         }
         textView = (TextView) findViewById(R.id.textResult);
+        edOpcion = (EditText) findViewById(R.id.option);
+
+        findViewById(R.id.btnTestFile).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                edOpcion.setText("2");
+                File testImage = new File(OCRManager.PATH_WORKING_DIR + "prueba.jpg");
+                outputFileUri = Uri.fromFile(testImage);
+
+                Log.i("PRUEBA", outputFileUri.getPath());
+                Toast.makeText(MainActivity.this, "Test image : " + testImage.exists() + ", " + testImage.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+
+                prueba(null);
+            }
+        });
 
         ocrManager = new OCRManager(this);
     }
@@ -75,11 +93,48 @@ public class MainActivity extends Activity
             Bundle extras = data.getExtras();
             Bitmap photoBitmap = (Bitmap) extras.get("data");
 
-            //ocrManager.doFileOCR(outputFileUri, this);
-            ocrManager.doBitmapOCR(photoBitmap, this);
+            prueba(photoBitmap);
         } else {
             Toast.makeText(this, "ERROR: Image was not obtained.", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void prueba(Bitmap photoBitmap) {
+        String msg = "";
+        switch (edOpcion.getText().toString()) {
+            case "0": //pruebas bitmap
+                msg = "1 bitmap";
+                ocrManager.doBitmapOCR(photoBitmap, this);
+                break;
+
+            case "1": //pruebas array bitmap
+                msg = "array bitmap";
+
+                Bitmap[] arrBitmap = new Bitmap[10];
+                for(int i=0; i<arrBitmap.length ; i++) {
+                    arrBitmap[i] = photoBitmap;
+                }
+                ocrManager.doBitmapArrayOCR(arrBitmap, this);
+                break;
+
+            case "2": //pruebas uri
+                msg = "1 uri";
+
+                ocrManager.doFileOCR(outputFileUri, this);
+                break;
+
+            case "3": //pruebas array uri
+                msg = "array uri";
+
+                Uri[] imgUris = new Uri[10];
+                for(int i=0; i<imgUris.length ; i++) {
+                    imgUris[i] = outputFileUri;
+                }
+                ocrManager.doFileArrayOCR(imgUris, this);
+                break;
+        }
+
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -88,8 +143,15 @@ public class MainActivity extends Activity
     }
 
     @Override
-    public void onOCREnd(boolean done, String text) {
-        Toast.makeText(this, "FIN OCR RESULT: " + done, Toast.LENGTH_SHORT).show();
+    public void onOCREnd(boolean done, ArrayList<String> texts) {
+        String text = "FIN OCR RESULT: " + done + " size " + texts.size() + "\n";
+
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+
+        for(String t : texts) {
+            text += t + "====================\n";
+        }
+
         textView.setText(text);
     }
 }

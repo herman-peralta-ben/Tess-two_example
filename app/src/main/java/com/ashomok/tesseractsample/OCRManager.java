@@ -10,6 +10,8 @@ import android.util.Log;
 
 import com.googlecode.tesseract.android.TessBaseAPI;
 
+import java.util.ArrayList;
+
 /**
  * Created by herman on 01/11/16.
  */
@@ -17,7 +19,7 @@ import com.googlecode.tesseract.android.TessBaseAPI;
 public class OCRManager {
     private static final String TAG = OCRManager.class.getSimpleName();
 
-    public static final String PATH_WORKING_DIR = Environment.getExternalStorageDirectory().toString() + "/HermanPruebas/";
+    public static final String PATH_WORKING_DIR = Environment.getExternalStorageDirectory().toString() + "/Download/tesseract/";
     private static final String PATH_ASSETS_TESSDATA = "tessdata";
     private static final String lang = "eng";
 
@@ -42,6 +44,18 @@ public class OCRManager {
         (new OCRAsyncTask(bitmap, ocrListener)).execute();
     }
 
+    public void doBitmapArrayOCR(Bitmap[] bitmap, OCRListener ocrListener) {
+        prepareTesseract(context);
+
+        (new OCRArrayAsyncTask(bitmap, ocrListener)).execute();
+    }
+
+    public void doFileArrayOCR(Uri[] imgUris, OCRListener ocrListener) {
+        prepareTesseract(context);
+
+        (new OCRArrayAsyncTask(imgUris, ocrListener)).execute();
+    }
+
     private void prepareTesseract(Context context) {
         Utils.prepareDirectory(PATH_WORKING_DIR + PATH_ASSETS_TESSDATA);
 
@@ -58,6 +72,8 @@ public class OCRManager {
         boolean result;
         try {
             BitmapFactory.Options options = new BitmapFactory.Options();
+            //Todo: importante hay que jugar ocn esto del muestreo en relación del tamaño de la imagen, usar Picasso
+            //para poner las imagenes al mismo tamaño
             options.inSampleSize = 4; // 1 - means max size. 4 - means maxsize/4 size. Don't use value <4, because you need more memory in the heap to store your data.
             Bitmap bitmap = BitmapFactory.decodeFile(imgUri.getPath(), options);
 
@@ -83,6 +99,8 @@ public class OCRManager {
     private boolean startBitmapOCR(Bitmap bitmap) {
         try {
             result = extractText(bitmap);
+
+            Log.i("TEXT", ">>>>" + result + "<<<<<<");
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
             e.printStackTrace();
@@ -130,10 +148,12 @@ public class OCRManager {
 
     private class OCRAsyncTask extends AsyncTask<Void, Void, Boolean> {
 
+        private OCRListener ocrListener;
+        private ArrayList<String> texts;
+        boolean doBitmap = false;
+
         private Uri imgUri;
         private Bitmap bitmap;
-        private OCRListener ocrListener;
-        boolean doBitmap = false;
 
         public OCRAsyncTask(Uri imgUri, OCRListener ocrListener) {
             this.imgUri = imgUri;
@@ -149,6 +169,8 @@ public class OCRManager {
 
         @Override
         protected void onPreExecute() {
+            texts = new ArrayList<>();
+
             ocrListener.onOCRStart();
         }
 
@@ -167,12 +189,72 @@ public class OCRManager {
 
         @Override
         protected void onPostExecute(Boolean done) {
-            ocrListener.onOCREnd(done, result);
+            texts.add(result);
+            ocrListener.onOCREnd(done, texts);
+        }
+    }
+
+    private class OCRArrayAsyncTask extends AsyncTask<Void, Void, Boolean> {
+
+        private OCRListener ocrListener;
+        private ArrayList<String> texts;
+        boolean doBitmap = false;
+        private boolean done = true;
+
+        private Uri[] imgUris;
+        private Bitmap[] bitmaps;
+
+        public OCRArrayAsyncTask(Uri[] imgUris, OCRListener ocrListener) {
+            this.imgUris = imgUris;
+            this.ocrListener = ocrListener;
+        }
+
+        public OCRArrayAsyncTask(Bitmap[] bitmaps, OCRListener ocrListener) {
+            this.bitmaps = bitmaps;
+            this.ocrListener = ocrListener;
+            this.doBitmap = true;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            texts = new ArrayList<>();
+
+            ocrListener.onOCRStart();
+        }
+
+        @Override
+        protected Boolean doInBackground(Void... params) {
+            if(doBitmap) {
+                for(int i=0; i<bitmaps.length ; i++) {
+                    if(startBitmapOCR(bitmaps[i])) {
+                        texts.add(result);
+                    } else {
+                        done = false;
+                        texts.add(null);
+                    }
+                }
+            } else {
+                for(int i=0; i<imgUris.length ; i++) {
+                    if(startFileOCR(imgUris[i])) {
+                        texts.add(result);
+                    } else {
+                        done = false;
+                        texts.add(null);
+                    }
+                }
+            }
+
+            return done;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean done) {
+            ocrListener.onOCREnd(done, texts);
         }
     }
 
     public interface OCRListener {
         public void onOCRStart();
-        public void onOCREnd(boolean done, String text);
+        public void onOCREnd(boolean done, ArrayList<String> texts);
     }
 }

@@ -21,10 +21,41 @@
         android:layout_below="@+id/instruction">
     </Button>
 
+    <EditText
+        android:id="@+id/option"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="textPersonName"
+        android:text="0"
+        android:gravity="center"
+        android:ems="10"
+        android:layout_above="@+id/textResult"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginRight="53dp"
+        android:layout_marginEnd="53dp"
+        android:layout_toRightOf="@+id/action_btn"
+        android:layout_toEndOf="@+id/action_btn" />
+
     <TextView
         android:id="@+id/textResult"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="OCR result will be here"
-        android:layout_below="@+id/action_btn"/>
+        android:layout_below="@+id/action_btn"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="79dp" />
+
+    <Button
+        android:text="TestImage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/btnTestFile"
+        android:layout_below="@+id/action_btn"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="14dp"
+        android:layout_toLeftOf="@+id/option"
+        android:layout_toStartOf="@+id/option" />
 </RelativeLayout>
